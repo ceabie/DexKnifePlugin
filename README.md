@@ -159,7 +159,7 @@ and then, set your app
 ## 特性（重要）
 
 1. DexKnife只负责由配置的 类路径通配符 -> maindexlist 文件的转换，生成maindexlist.txt，**不参与**其他的处理和编译过程。非全自动工具，需要对maindexlist特性有较深的了解。
-2. 如果出现运行时类找不到（i.e. class no def/found），请打开DexKnife的log功能，比对调试下DexKnife或ProGuard配置，并检查生成的maindexlist是否匹配你的配置。**不要将在Application中使用到的类，分到第二个dex中**。（即使不使用DexKnife，手动配置maindexlist也会出现这样的问题）
+2. 如果出现运行时类找不到（i.e. class no def/found），请打开DexKnife的log功能，比对调试下DexKnife或ProGuard配置，并检查生成的maindexlist是否匹配你的配置。**不要将在Application中使用到的类，分到第二个dex中**。建议使用单独的一个类编写Application中的功能，并在proguard中keep你的Application类。（即使不使用DexKnife，手动配置maindexlist也会出现这样的问题）
 3. DexKnife只能明确指定第一个dex中的类，不能明确指定第二个dex以后的类（dex的maindexlist限制）。如果需要完全手动配置第一个dex，使用<br />
         -donot-use-suggest<br />
         -split ** <br />
@@ -182,7 +182,7 @@ and then, set your app
             dependencies {
                 ....
                 classpath 'com.android.tools.build:gradle:2.3.0'  // or other
-                classpath 'com.ceabie.dextools:gradle-dexknife-plugin:1.6.1'
+                classpath 'com.ceabie.dextools:gradle-dexknife-plugin:1.6.3'
             }
         }
 
@@ -206,7 +206,9 @@ and then, set your app
 
     使用 # 进行注释, 当行起始加上 #, 这行配置被禁用.
 
-    # 全局过滤, 如果没设置 -filter-suggest 并不会应用到 建议的maindexlist.
+    # 全局过滤，针对所有类的过滤。
+    # -split 仅将指定的类移除，剩余的类都在miandex，配置不当会出现 too many classes。
+    # 如果 未设置 -filter-suggest 并不会应用到 建议的maindexlist.
     # 如果你想要某个已被排除的包路径在maindex中，则使用 -keep 选项，即使他已经在分包的路径中.
     # 注意，没有split只用keep时，miandexlist将仅包含keep指定的类。
     -keep android.support.v4.view.**

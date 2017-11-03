@@ -36,6 +36,7 @@ import java.util.zip.ZipFile;
 public class DexSplitTools {
 
     public static final String DEX_KNIFE_CFG_TXT = "dexknife.txt";
+    public static final String DEX_KNIFE_CFG_PRO = "dexknife.pro";
 
     private static final String DEX_MINIMAL_MAIN_DEX = "--minimal-main-dex";
 
@@ -106,7 +107,12 @@ public class DexSplitTools {
      */
     protected static DexKnifeConfig getDexKnifeConfig(Project project)
             throws Exception {
-        BufferedReader reader = new BufferedReader(new FileReader(project.file(DEX_KNIFE_CFG_TXT)));
+        File fileConfig = project.file(DEX_KNIFE_CFG_PRO);
+        if (!fileConfig.exists()) {
+            fileConfig = project.file(DEX_KNIFE_CFG_TXT);
+        }
+
+        BufferedReader reader = new BufferedReader(new FileReader(fileConfig));
         DexKnifeConfig dexKnifeConfig = new DexKnifeConfig();
 
         String line;

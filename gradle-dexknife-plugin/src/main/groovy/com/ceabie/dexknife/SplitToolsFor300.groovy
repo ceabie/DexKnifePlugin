@@ -15,30 +15,28 @@
  */
 package com.ceabie.dexknife
 
-import com.android.build.api.transform.Format
 import com.android.build.api.transform.Transform
-import com.android.build.gradle.AndroidGradleOptions
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.core.GradleVariantConfiguration
 import com.android.build.gradle.internal.pipeline.TransformTask
 import com.android.build.gradle.internal.scope.VariantScope
-import com.android.build.gradle.internal.transforms.DexTransform
+import com.android.builder.dexing.DexingType
 import com.android.sdklib.AndroidVersion
 import org.gradle.api.Project
 
 /**
- * the spilt tools for plugin 1.5.0.
+ * the spilt tools for plugin 3.0.0.
  *
  * @author ceabie
  */
-public class SplitToolsFor150 extends DexSplitTools {
+public class SplitToolsFor300 extends DexSplitTools {
 
     public static boolean isCompat() {
-         if (getAndroidPluginVersion(com.android.builder.Version.ANDROID_GRADLE_PLUGIN_VERSION) < 300) {
-             return true
-         }
+//         if (getAndroidPluginVersion() < 200) {
+//             return true;
+//         }
 
-        return false
+        return true;
     }
 
     public static void processSplitDex(Project project, ApplicationVariant variant) {
@@ -55,8 +53,11 @@ public class SplitToolsFor150 extends DexSplitTools {
         }
 
         TransformTask dexTask
+        TransformTask merginDexTask
 //        TransformTask proGuardTask
         TransformTask jarMergingTask
+
+        println("DexKnife: processSplitDex ${variant.buildType.debuggable}")
 
         String name = variant.name.capitalize()
         boolean minifyEnabled = variant.buildType.minifyEnabled
@@ -68,17 +69,17 @@ public class SplitToolsFor150 extends DexSplitTools {
             Transform transform = theTask.transform
             String transformName = transform.name
 
-//            if (minifyEnabled && "proguard".equals(transformName)) { // ProGuardTransform
-//                proGuardTask = theTask
-//            } else
+            println("DexKnife: Task: " + transform)
             if ("jarMerging".equalsIgnoreCase(transformName)) {
                 jarMergingTask = theTask
             } else if ("dex".equalsIgnoreCase(transformName)) { // DexTransform
                 dexTask = theTask
+            } else if ("dexMerger".equalsIgnoreCase(transformName)) {
+                dexTask = theTask
             }
         }
 
-        if (dexTask != null && ((DexTransform) dexTask.transform).multiDex) {
+        if (dexTask != null && dexTask.transform.dexingType != DexingType.MONO_DEX) {
             println("DexKnife: processing Task")
 
             dexTask.inputs.file DEX_KNIFE_CFG_PRO
@@ -89,14 +90,20 @@ public class SplitToolsFor150 extends DexSplitTools {
 
                 File mergedJar = null
                 File mappingFile = variant.mappingFile
-                DexTransform dexTransform = it.transform
-                File adtMainDexList = dexTransform.mainDexListFile
+                def mainDexListFile = dexTask.transform.mainDexListFile
+                File adtMainDexList
+                if (mainDexListFile != null) {
+                    Set<File> files = mainDexListFile.files
+                    files.each {
+                        adtMainDexList = it
+                        println("DexKnife: Adt Main: " + it)
+                    }
+                }
 
-                println("DexKnife: Adt Main: " + adtMainDexList)
 
-                String pluginVersion = getAndroidGradlePluginVersion()
+                String pluginVersion = com.android.builder.Version.ANDROID_GRADLE_PLUGIN_VERSION
                 int gradlePluginVersion = getAndroidPluginVersion(pluginVersion)
-                int featureLevel = AndroidGradleOptions.getTargetFeatureLevel(project)
+                int featureLevel = getTargetDeviceApi(variantScope)
                 int minSdk = getMinSdk(variantScope)
                 int targetSdk = getTargetSdk(variantScope)
                 boolean isNewBuild = gradlePluginVersion >= 230 && featureLevel >= 23 && variant.buildType.debuggable
@@ -159,6 +166,8 @@ public class SplitToolsFor150 extends DexSplitTools {
                         mergedJar = outputProvider.getContentLocation("combined",
                                 transform.getOutputTypes(),
                                 transform.getScopes(), Format.JAR)
+                    } else {
+                        println("DexKnife-From MergedTask null")
                     }
 
                     println("DexKnife-From MergedJar: " + mergedJar)
@@ -181,9 +190,9 @@ public class SplitToolsFor150 extends DexSplitTools {
                     // after 2.2.0, it can additionalParameters, but it is a copy in task
 
                     // 替换 AndroidBuilder
-                    InjectAndroidBuilder.proxyAndroidBuilder(dexTransform,
-                            dexKnifeConfig.additionalParameters,
-                            adtMainDexList)
+//                    InjectAndroidBuilder.proxyAndroidBuilder(dexTransform,
+//                            dexKnifeConfig.additionalParameters,
+//                            adtMainDexList)
 
                 }
 
@@ -192,6 +201,10 @@ public class SplitToolsFor150 extends DexSplitTools {
         } else {
             System.err.println("DexKnife: process task error")
         }
+    }
+
+    private static int getTargetDeviceApi(VariantScope scope) {
+        scope.getVariantConfiguration().getMinSdkVersionWithTargetDeviceApi().getFeatureLevel()
     }
 
     private static boolean isInInstantRunMode(VariantScope scope) {
@@ -204,17 +217,17 @@ public class SplitToolsFor150 extends DexSplitTools {
     }
 
     private static boolean isInTestingMode(ApplicationVariant variant) {
-        return (variant.getVariantData().getType().isForTesting());
+        return (variant.getVariantData().getType().isForTesting())
     }
 
     private static int getMinSdk(VariantScope variantScope) {
         def version = variantScope.getMinSdkVersion()
-        return version != null? version.getApiLevel(): 0;
+        return version != null? version.getApiLevel(): 0
     }
 
     private static int getTargetSdk(VariantScope variantScope) {
         def version = variantScope.getVariantConfiguration().getTargetSdkVersion()
-        return version != null? version.getApiLevel(): 0;
+        return version != null? version.getApiLevel(): 0
     }
 
     private static boolean isLegacyMultiDexMode(VariantScope variantScope) {
@@ -231,24 +244,24 @@ public class SplitToolsFor150 extends DexSplitTools {
         println("AndroidPluginVersion: " + pluginVersion)
         println("variant: " + variant.name.capitalize())
         println("minifyEnabled: " + variant.buildType.minifyEnabled)
-        println("FeatureLevel:  " + AndroidGradleOptions.getTargetFeatureLevel(project))
+        println("FeatureLevel:  " + getTargetDeviceApi(variantScope))
         println("MinSdkVersion: " + getMinSdk(variantScope))
         println("TargetSdkVersion: " + getTargetSdk(variantScope))
         println("isLegacyMultiDexMode: " + isLegacyMultiDexMode(variantScope))
 
         println("isInstantRunSupported: " + config.isInstantRunSupported())
-        println("targetDeviceSupportsInstantRun: " + targetDeviceSupportsInstantRun(config, project))
+        println("targetDeviceSupportsInstantRun: " + targetDeviceSupportsInstantRun(config, variantScope))
         println("getPatchingPolicy: " + variantScope.getInstantRunBuildContext().getPatchingPolicy())
         System.err.println("Feedback Log End <<<<<<<<<<<<<<<<<<<<<<<<<<")
     }
 
     private static boolean targetDeviceSupportsInstantRun(
             GradleVariantConfiguration config,
-            Project project) {
+            VariantScope variantScope) {
         if (config.isLegacyMultiDexMode()) {
             // We don't support legacy multi-dex on Dalvik.
-            return AndroidGradleOptions.getTargetFeatureLevel(project) >=
-                    AndroidVersion.ART_RUNTIME.getFeatureLevel();
+            return getTargetDeviceApi(variantScope) >=
+                    AndroidVersion.ART_RUNTIME.getFeatureLevel()
         }
 
         return true;

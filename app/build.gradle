@@ -1,12 +1,13 @@
 apply plugin: 'com.android.application'
 if (hasDexKnifePlugin()) {
-    apply plugin: 'com.ceabie.dexnkife'
+    apply plugin: 'com.ceabie.dexknife'
 }
 
 android {
+    buildToolsVersion '25.0.2'
+
     compileSdkVersion Integer.parseInt(project.COMPILE_SDK_VER)
     buildToolsVersion project.BUILD_TOOLS_VER
-
     defaultConfig {
         minSdkVersion Integer.parseInt(project.MIN_SDK_VER)
         targetSdkVersion Integer.parseInt(project.TARGET_SDK_VERSION)
@@ -21,13 +22,11 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
-
         debug {
 //            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
 //    productFlavors {
 //        flavor1 {
 //            versionCode 20
@@ -38,10 +37,14 @@ android {
 //            multiDexEnabled false
 //        }
 //    }
-
     packagingOptions {
         exclude ".readme"
     }
+    lintOptions {
+        abortOnError false
+    }
+
+    buildToolsVersion '26.0.2'
 }
 
 dependencies {
@@ -51,7 +54,7 @@ dependencies {
     compile "io.reactivex:rxandroid:${RX_ANDROID}"
     //    compile 'com.google.dagger:dagger:2.0'
     //    apt 'com.google.dagger:dagger-compiler:2.0'
-    compile 'com.android.support:multidex:1.0.1'
+    compile 'com.android.support:multidex:1.0.2'
     compile project(':lib1')
 }
 

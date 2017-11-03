@@ -46,8 +46,8 @@ compileGroovy {
 dependencies {
     compile gradleApi()
     compile localGroovy()
-    provided 'com.android.tools.build:builder:1.5.0'
-    provided 'com.android.tools.build:gradle-core:1.5.0'
+    provided 'com.android.tools.build:builder:3.0.0'
+    provided 'com.android.tools.build:gradle-core:3.0.0'
 }
 
 version = "${PUBLIC_VERSION}"

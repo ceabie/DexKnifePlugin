@@ -43,6 +43,7 @@ public class SplitToolsFor130 extends DexSplitTools {
         if (dex.multiDexEnabled) {
             println("DexKnife: processing Task")
 
+            dex.inputs.file DEX_KNIFE_CFG_PRO
             dex.inputs.file DEX_KNIFE_CFG_TXT
 
             dex.doFirst {
