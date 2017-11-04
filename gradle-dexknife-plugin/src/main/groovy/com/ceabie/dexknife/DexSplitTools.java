@@ -15,8 +15,12 @@
  */
 package com.ceabie.dexknife;
 
+import org.apache.bcel.classfile.ClassParser;
+import org.apache.bcel.classfile.JavaClass;
 import org.gradle.api.Project;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTreeElement;
+import org.gradle.api.internal.file.collections.SimpleFileCollection;
 import org.gradle.api.specs.NotSpec;
 import org.gradle.api.specs.OrSpec;
 import org.gradle.api.specs.Spec;
@@ -26,6 +30,7 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 /**
@@ -84,22 +89,31 @@ public class DexSplitTools {
     }
 
     public static boolean processMainDexList(Project project, boolean minifyEnabled, File mappingFile,
-                                             File jarMergingOutputFile, File andMainDexList,
+                                             FileCollection allClasses, File andMainDexList,
                                              DexKnifeConfig dexKnifeConfig) throws Exception {
 
-        if (!minifyEnabled && jarMergingOutputFile == null) {
+        if (!minifyEnabled && allClasses == null) {
             System.out.println("DexKnife Error: jarMerging is Null! Skip DexKnife. Please report All Gradle Log.");
             return false;
         }
 
         try {
-            return genMainDexList(project, minifyEnabled, mappingFile, jarMergingOutputFile,
+            return genMainDexList(project, minifyEnabled, mappingFile, allClasses,
                     andMainDexList, dexKnifeConfig);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         return false;
+    }
+
+    public static boolean processMainDexList(Project project, boolean minifyEnabled, File mappingFile,
+                                             File jarMergingOutputFile, File andMainDexList,
+                                             DexKnifeConfig dexKnifeConfig) throws Exception {
+
+        return processMainDexList(project, minifyEnabled, mappingFile,
+                new SimpleFileCollection(jarMergingOutputFile),
+                andMainDexList, dexKnifeConfig);
     }
 
     /**
@@ -295,7 +309,7 @@ public class DexSplitTools {
      * generate the main dex list
      */
     private static boolean genMainDexList(Project project, boolean minifyEnabled,
-                                          File mappingFile, File jarMergingOutputFile,
+                                          File mappingFile, FileCollection allClasses,
                                           File adtMainDexList, DexKnifeConfig dexKnifeConfig) throws Exception {
 
         System.out.println(":" + project.getName() + ":genMainDexList");
@@ -336,13 +350,13 @@ public class DexSplitTools {
                 mainClasses = getMainClassesFromMapping(mappingFile, dexKnifeConfig.patternSet,
                         recommendMainClasses, dexKnifeConfig.logFilter);
             } else {
-                System.out.println("DexKnife: From MergedJar: " + jarMergingOutputFile);
-                if (jarMergingOutputFile != null) {
-                    // get classes from merged jar
-                    mainClasses = getMainClassesFromJar(jarMergingOutputFile, dexKnifeConfig.patternSet,
+                if (allClasses != null) {
+                    System.out.println("DexKnife: From classes: " + allClasses.getAsPath());
+                    // get main classes from project's classes
+                    mainClasses = collectMainClassesFromFiles(allClasses, dexKnifeConfig.patternSet,
                             recommendMainClasses, dexKnifeConfig.logFilter);
                 } else {
-                    System.err.println("DexKnife: The Merged Jar is not exist! Can't be processed!");
+                    System.err.println("DexKnife: The classes is not exist! Can't be processed!");
                 }
             }
         }
@@ -371,7 +385,7 @@ public class DexSplitTools {
     /**
      * Gets main classes from jar.
      *
-     * @param jarMergingOutputFile the jar merging output file
+     * @param allClasses           the all classes path
      * @param mainDexPattern       the main dex pattern
      * @param adtMainCls           the filter mapping of suggest classes
      * @param logFilter
@@ -379,32 +393,66 @@ public class DexSplitTools {
      * @throws Exception the exception
      * @author ceabie
      */
-    private static ArrayList<String> getMainClassesFromJar(
-            File jarMergingOutputFile, PatternSet mainDexPattern, Map<String, Boolean> adtMainCls, boolean logFilter)
-            throws Exception {
-        ZipFile clsFile = new ZipFile(jarMergingOutputFile);
+    private static ArrayList<String> collectMainClassesFromFiles(
+            FileCollection allClasses, PatternSet mainDexPattern, Map<String, Boolean> adtMainCls, boolean logFilter)
+            throws IOException {
         Spec<FileTreeElement> asSpec = getMaindexSpec(mainDexPattern);
+        ArrayList<String> mainDexList = new ArrayList<>();
+
+        ClassFileTreeElement treeElement = new ClassFileTreeElement();
+
+        for (File file : allClasses) {
+            if (file != null) {
+                String name = file.getName();
+
+                if (name.endsWith(".jar")) {
+                    try {
+                        collectClassesFromJar(adtMainCls, asSpec, new ZipFile(file), mainDexList, logFilter);
+                        continue;
+                    } catch (ZipException e) {
+                    }
+                }
+                // from file path
+                ClassParser classParser = new ClassParser(file.getAbsolutePath());
+                JavaClass parse = classParser.parse();
+                name = parse.getPackageName().replace('.', '/') + "/" + name;
+                System.out.println(name);
+                collectMainClasses(adtMainCls, asSpec, mainDexList, treeElement, name, logFilter);
+            }
+
+        }
+
+
+        return mainDexList;
+    }
+
+    private static void collectClassesFromJar(
+            Map<String, Boolean> adtMainCls, Spec<FileTreeElement> asSpec, ZipFile clsFile,
+            ArrayList<String> mainDexList, boolean logFilter)
+            throws IOException {
+
         ClassFileTreeElement treeElement = new ClassFileTreeElement();
 
         // lists classes from jar.
-        ArrayList<String> mainDexList = new ArrayList<>();
         Enumeration<? extends ZipEntry> entries = clsFile.entries();
         while (entries.hasMoreElements()) {
             ZipEntry entry = entries.nextElement();
             String entryName = entry.getName();
-
-            if (entryName.endsWith(CLASS_SUFFIX)) {
-                treeElement.setClassPath(entryName);
-
-                if (isAtMainDex(adtMainCls, entryName, treeElement, asSpec, logFilter)) {
-                    mainDexList.add(entryName);
-                }
-            }
+            collectMainClasses(adtMainCls, asSpec, mainDexList, treeElement, entryName, logFilter);
         }
 
         clsFile.close();
+    }
 
-        return mainDexList;
+    private static void collectMainClasses(Map<String, Boolean> adtMainCls, Spec<FileTreeElement> asSpec,
+                                           ArrayList<String> mainDexList, ClassFileTreeElement treeElement,
+                                           String entryName, boolean logFilter) {
+        if (entryName.endsWith(CLASS_SUFFIX)) {
+            treeElement.setClassPath(entryName);
+            if (isAtMainDex(adtMainCls, entryName, treeElement, asSpec, logFilter)) {
+                mainDexList.add(entryName);
+            }
+        }
     }
 
     /**

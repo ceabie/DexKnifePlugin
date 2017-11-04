@@ -87,7 +87,6 @@ public class SplitToolsFor150 extends DexSplitTools {
             dexTask.doFirst {
                 startDexKnife()
 
-                File mergedJar = null
                 File mappingFile = variant.mappingFile
                 DexTransform dexTransform = it.transform
                 File adtMainDexList = dexTransform.mainDexListFile
@@ -147,6 +146,8 @@ public class SplitToolsFor150 extends DexSplitTools {
 
 
                 DexKnifeConfig dexKnifeConfig = getDexKnifeConfig(project)
+
+                File mergedJar = null
 
                 // 非混淆的，从合并后的jar文件中提起mainlist；
                 // 混淆的，直接从mapping文件中提取

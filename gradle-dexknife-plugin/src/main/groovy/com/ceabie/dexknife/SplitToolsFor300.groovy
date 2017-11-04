@@ -15,6 +15,7 @@
  */
 package com.ceabie.dexknife
 
+import com.android.build.api.transform.Format
 import com.android.build.api.transform.Transform
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.core.GradleVariantConfiguration
@@ -23,6 +24,8 @@ import com.android.build.gradle.internal.scope.VariantScope
 import com.android.builder.dexing.DexingType
 import com.android.sdklib.AndroidVersion
 import org.gradle.api.Project
+import org.gradle.api.file.FileCollection
+import org.gradle.api.internal.file.collections.SimpleFileCollection
 
 /**
  * the spilt tools for plugin 3.0.0.
@@ -54,8 +57,8 @@ public class SplitToolsFor300 extends DexSplitTools {
 
         TransformTask dexTask
         TransformTask merginDexTask
-//        TransformTask proGuardTask
         TransformTask jarMergingTask
+        TransformTask dexBuilderTask
 
         println("DexKnife: processSplitDex ${variant.buildType.debuggable}")
 
@@ -70,12 +73,23 @@ public class SplitToolsFor300 extends DexSplitTools {
             String transformName = transform.name
 
             println("DexKnife: Task: " + transform)
+//            theTask.inputs.files.each {
+//                println("\t\t${it}")
+//            }
+//
+//            println("-----------------------------------------------------------")
+//
+//            theTask.outputs.files.each {
+//                println("\t\t${it}")
+//            }
             if ("jarMerging".equalsIgnoreCase(transformName)) {
                 jarMergingTask = theTask
             } else if ("dex".equalsIgnoreCase(transformName)) { // DexTransform
                 dexTask = theTask
             } else if ("dexMerger".equalsIgnoreCase(transformName)) {
                 dexTask = theTask
+            } else if ("dexBuilder".equalsIgnoreCase(transformName)) {
+                dexBuilderTask = theTask
             }
         }
 
@@ -88,7 +102,6 @@ public class SplitToolsFor300 extends DexSplitTools {
             dexTask.doFirst {
                 startDexKnife()
 
-                File mergedJar = null
                 File mappingFile = variant.mappingFile
                 def mainDexListFile = dexTask.transform.mainDexListFile
                 File adtMainDexList
@@ -152,10 +165,11 @@ public class SplitToolsFor300 extends DexSplitTools {
                     return
                 }
 
-
                 DexKnifeConfig dexKnifeConfig = getDexKnifeConfig(project)
 
-                // 非混淆的，从合并后的jar文件中提起mainlist；
+                FileCollection allClasses = null
+
+                // 非混淆的，从合并后的jar文件中提取mainlist，或从；
                 // 混淆的，直接从mapping文件中提取
                 if (minifyEnabled) {
                     println("DexKnife-From Mapping: " + mappingFile)
@@ -163,17 +177,21 @@ public class SplitToolsFor300 extends DexSplitTools {
                     if (jarMergingTask != null) {
                         Transform transform = jarMergingTask.transform
                         def outputProvider = jarMergingTask.outputStream.asOutput()
-                        mergedJar = outputProvider.getContentLocation("combined",
+                        def mergingJar = outputProvider.getContentLocation("combined_classes",
                                 transform.getOutputTypes(),
                                 transform.getScopes(), Format.JAR)
-                    } else {
-                        println("DexKnife-From MergedTask null")
-                    }
 
-                    println("DexKnife-From MergedJar: " + mergedJar)
+                        allClasses = new SimpleFileCollection(mergingJar)
+                        println("DexKnife-From MergedJar: " + mergingJar)
+                    } else if (dexBuilderTask != null) {
+                        allClasses = dexBuilderTask.inputs.files
+                        println("DexKnife-From dexBuilderTask")
+                    } else {
+                        println("DexKnife-From null")
+                    }
                 }
 
-                if (processMainDexList(project, minifyEnabled, mappingFile, mergedJar,
+                if (processMainDexList(project, minifyEnabled, mappingFile, allClasses,
                         adtMainDexList, dexKnifeConfig)) {
 
                     // replace android gradle plugin's maindexlist.txt
@@ -189,11 +207,11 @@ public class SplitToolsFor300 extends DexSplitTools {
 
                     // after 2.2.0, it can additionalParameters, but it is a copy in task
 
-                    // 替换 AndroidBuilder
-//                    InjectAndroidBuilder.proxyAndroidBuilder(dexTransform,
-//                            dexKnifeConfig.additionalParameters,
-//                            adtMainDexList)
-
+//                    // 替换 AndroidBuilder
+////                    InjectAndroidBuilder.proxyAndroidBuilder(dexTransform,
+////                            dexKnifeConfig.additionalParameters,
+////                            adtMainDexList)
+//
                 }
 
                 endDexKnife()

@@ -4,8 +4,6 @@ if (hasDexKnifePlugin()) {
 }
 
 android {
-    buildToolsVersion '25.0.2'
-
     compileSdkVersion Integer.parseInt(project.COMPILE_SDK_VER)
     buildToolsVersion project.BUILD_TOOLS_VER
     defaultConfig {
@@ -44,7 +42,6 @@ android {
         abortOnError false
     }
 
-    buildToolsVersion '26.0.2'
 }
 
 dependencies {

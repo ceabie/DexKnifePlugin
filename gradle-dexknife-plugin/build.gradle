@@ -48,6 +48,7 @@ dependencies {
     compile localGroovy()
     provided 'com.android.tools.build:builder:3.0.0'
     provided 'com.android.tools.build:gradle-core:3.0.0'
+    compile group: 'org.apache.bcel', name: 'bcel', version: '5.2'
 }
 
 version = "${PUBLIC_VERSION}"
