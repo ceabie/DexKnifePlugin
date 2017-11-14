@@ -416,7 +416,7 @@ public class DexSplitTools {
                 ClassParser classParser = new ClassParser(file.getAbsolutePath());
                 JavaClass parse = classParser.parse();
                 name = parse.getPackageName().replace('.', '/') + "/" + name;
-                System.out.println(name);
+//                System.out.println(name);
                 collectMainClasses(adtMainCls, asSpec, mainDexList, treeElement, name, logFilter);
             }
 

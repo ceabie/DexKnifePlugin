@@ -72,16 +72,7 @@ public class SplitToolsFor300 extends DexSplitTools {
             Transform transform = theTask.transform
             String transformName = transform.name
 
-            println("DexKnife: Task: " + transform)
-//            theTask.inputs.files.each {
-//                println("\t\t${it}")
-//            }
-//
-//            println("-----------------------------------------------------------")
-//
-//            theTask.outputs.files.each {
-//                println("\t\t${it}")
-//            }
+//            println("DexKnife: Task: " + transform)
             if ("jarMerging".equalsIgnoreCase(transformName)) {
                 jarMergingTask = theTask
             } else if ("dex".equalsIgnoreCase(transformName)) { // DexTransform

@@ -8,7 +8,7 @@
 # this path will to be split to second dex.
 -split android.support.v?.**
 
-#-split rx.**  # same as rx.**
+-split rx.**  # same as rx.**
 
 #**.MainActivity2.class
 #**.MainActivity2$*.class   # use $* to filter the inner classes.
@@ -16,7 +16,7 @@
 # if you want to keep some classes in main dex, use '-keep'.
 -keep android.support.v4.view.**
 
-**.methodpool1.**
+-split **.methodpool1.**
 
 #-keep android.support.multidex.**
 
