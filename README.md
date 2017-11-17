@@ -15,6 +15,7 @@ It will auto enable when disabled instant-run or in packaging release.(minsdk < 
 
 ## Update Log
 
+    1.7.0.alpha: Experimentally compatible with android gradle plugin 3.0, but there are some bugs for maindex.
     1.6.1: Compatible with android gradle plugin 2.3.0, auto disable when build with ART-Runtime (See Features 8).
     1.6.0: Modify: When only -keep is configured, only keep the specified classes.
     1.5.9: Compatible with some ancient version of gradle and android gradle plugin.
@@ -31,7 +32,7 @@ It will auto enable when disabled instant-run or in packaging release.(minsdk < 
 
 ## Features
 
-1. DexKnife just converts the wildcards of class path to maindexlist.txt, **does not participate in** other compilation process. It is not automatic tools, you need to have a understanding of the maindexlist features.
+1. DexKnife just converts the wildcards of class path to maindexlist.pro, **does not participate in** other compilation process. It is not automatic tools, you need to have a understanding of the maindexlist features.
 2. If the class can not be found (ie class no def / found) at runtime, enable DexKnife's log function, debug the config of dexKnife and check the config ProGuard. Verify the generated maindexlist.txt match your config. **Do not split the classes in the Application class into second dex**. (Even if you manually configure the maindexlist will be such a problem.)
 3. DexKnife can only explicitly specify the classes of main dex, can not specify the classes of after the second dex (limitation of dex's param maindexlist). If you need to completely configure the main dex manually, use:
         -donot-use-suggest<br />
@@ -62,7 +63,7 @@ It will auto enable when disabled instant-run or in packaging release.(minsdk < 
 **please make sure gradle version is compatible with the android gradle plugin, otherwise it can causes some sync error, such as:<br />
 Gradle sync failed: Unable to load class 'com.android.builder.core.EvaluationErrorReporter'.**
 
-2.Create a 'dexknife.txt' in your App's module, and config the patterns of classes path that wants to put into sencond dex.<br />
+2.Create a 'dexknife.pro' in your App's module, and config the patterns of classes path that wants to put into sencond dex.<br />
 (The rest of any classes that is not marked split will be in miandexlist)
 
         Patterns may include:
@@ -120,7 +121,7 @@ Other config key:
 
 3.add to your app's build.gradle, add this line:
 
-    apply plugin: 'com.ceabie.dexnkife'
+    apply plugin: 'com.ceabie.dexknife'
 
 and then, set your app
 
@@ -142,6 +143,7 @@ and then, set your app
 
 ## 更新日志
 
+    1.7.0.alpha: 实验性的支持 android gradle plugin 3.0, 但在maindex中还是存在一些bug.
     1.6.1: 兼容 Android gradle plugin 2.3.0，在 ART-Runtime编译模式下自动禁用，增加相关提示。(参见 特性 8)
     1.6.0: 修改：当只有keep时，只保留keep指定的类
     1.5.9: 兼容一些古老的 gradle 和 android gradle plugin版本
@@ -158,7 +160,7 @@ and then, set your app
 
 ## 特性（重要）
 
-1. DexKnife只负责由配置的 类路径通配符 -> maindexlist 文件的转换，生成maindexlist.txt，**不参与**其他的处理和编译过程。非全自动工具，需要对maindexlist特性有较深的了解。
+1. DexKnife只负责由配置的 类路径通配符 -> maindexlist 文件的转换，生成maindexlist.pro，**不参与**其他的处理和编译过程。非全自动工具，需要对maindexlist特性有较深的了解。
 2. 如果出现运行时类找不到（i.e. class no def/found），请打开DexKnife的log功能，比对调试下DexKnife或ProGuard配置，并检查生成的maindexlist是否匹配你的配置。**不要将在Application中使用到的类，分到第二个dex中**。建议使用单独的一个类编写Application中的功能，并在proguard中keep你的Application类。（即使不使用DexKnife，手动配置maindexlist也会出现这样的问题）
 3. DexKnife只能明确指定第一个dex中的类，不能明确指定第二个dex以后的类（dex的maindexlist限制）。如果需要完全手动配置第一个dex，使用<br />
         -donot-use-suggest<br />
@@ -253,7 +255,7 @@ and then, set your app
 
 3.在你的App模块的build.gradle 增加：
 
-    apply plugin: 'com.ceabie.dexnkife'
+    apply plugin: 'com.ceabie.dexknife'
 
 最后，在app工程中设置：
 
