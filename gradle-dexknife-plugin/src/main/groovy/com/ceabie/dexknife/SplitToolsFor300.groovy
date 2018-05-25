@@ -35,11 +35,11 @@ import org.gradle.api.internal.file.collections.SimpleFileCollection
 public class SplitToolsFor300 extends DexSplitTools {
 
     public static boolean isCompat() {
-//         if (getAndroidPluginVersion() < 200) {
-//             return true;
-//         }
+         if (getAndroidPluginVersion(com.android.builder.model.Version.ANDROID_GRADLE_PLUGIN_VERSION) < 400) {
+             return true
+         }
 
-        return true;
+        return false
     }
 
     public static void processSplitDex(Project project, ApplicationVariant variant) {
@@ -105,7 +105,7 @@ public class SplitToolsFor300 extends DexSplitTools {
                 }
 
 
-                String pluginVersion = com.android.builder.Version.ANDROID_GRADLE_PLUGIN_VERSION
+                String pluginVersion = com.android.builder.model.Version.ANDROID_GRADLE_PLUGIN_VERSION
                 int gradlePluginVersion = getAndroidPluginVersion(pluginVersion)
                 int featureLevel = getTargetDeviceApi(variantScope)
                 int minSdk = getMinSdk(variantScope)
